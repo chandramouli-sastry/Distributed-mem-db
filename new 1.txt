@@ -1,0 +1,109 @@
+2->1
+1->0
+3->2
+0->3
+zk.get("/master0001",watch=function)
+
+Slave boots up
+	1. Creates ephemeral node
+	2. Contact master, give (IP, Path to ephemeral)
+Master
+	1. Assigns internal # to slave, stores mapping b/w # <=> IP
+	2. Watches ephemeral
+		a. if node goes down
+			i. redirect clients to alternate
+			ii. spawn a new slave with same internal #
+			iii. stop redirecting 
+			
+		KR = { k1: 1's ip, k2:2's ip }
+		Redirection = {1's IP: 1's IP, 2's IP:2's IP}
+		now, if 2 goes down, 2's IP: 1's IP
+	When client asks:
+		a. Redirection[KR[]]
+		
+	in every slave- there'll be 2 dictionaries-1 which will be replicated to another server
+	1 which will be replicated in this server
+	Master Port- every slave will listen on this port for commands by master
+	Client Port- which is for serving the clients
+Master:
+	Slave port
+	Client Port
+	1->2->3->4->1
+Slave:
+	Master Port
+	Client Port
+	
+A->1:D1->A D2->D
+	B->2:D1->B D2->A
+C->3:D1->C D2->B
+D->4:D1->D D2->C
+
+	
+	
+1- D { k1: things, k2: things,}   MYKEY=k1 , MYBACKUP={k2,k3}
+2-
+3-
+4-	
+
+1 -> 2 
+	
+	
+	
+20 physical servers	... 4 servers came up of them..3 virtual servers...12 servers...
+kr/12...5th one..15 kr/15..redistribute 
+
+20 servers "virtual" 
+1 : 20 
+2 : 10, 10
+3 : 7, 7, 6
+
+fix key ranges- a b c and d are the only key ranges..a={0..10..values}
+0:	
+	1:a1,b1,c1,d1 
+	2:X
+	3:X
+	4:X
+
+1: 2 comes up
+	1: [a1 c1] b2 d2
+	2: [b1 d1] c2 a2
+
+2: 3 comes up- a b c d
+	1: [a1 d1] c2
+	2: [b1] a2 d2
+	3: [c1] b2
+
+3: 4 comes up- a b c d
+	1: [a1] d2
+	2: [b1] a2 
+	3: [c1] b2
+	4: [d1] c2
+Slave:
+	Master Port: it'll listen for commands by master
+	Client Port: it'll listen to client requests...Master will tell when it has to listen
+Protocols:
+Protocol for Syncing 2 servers
+	-> replicating data..1->2
+
+
+Protocol for slave registering with master
+	-> think about key range distribution here-use fixed key ranges
+
+
+Protocol for slave to start listening
+	-> when the slave can serve requests to client- when the slave first comes up..
+		30 sec-safeboot period; when keys are redistrbuted?
+		if it is a read request: serve the request; else-return SafeBootException?
+		GIVE EXCEPTION ANYWAY?hmm..read request we can serve know? yeah but it might
+		not be responsible so why? it'll be responsible so only request will cme
+
+
+Protocol on slave down
+	
+	
+	
+	
+	
+	
+	
+	
