@@ -2,7 +2,9 @@ from socket import *
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import NodeExistsError
-
+from Master import Master
+from Slave import Slave
+import six
 """
     Class
 """
@@ -19,13 +21,14 @@ class ServerFactory:
 
         connection_socket = socket(AF_INET, SOCK_STREAM)
         connection_socket.bind(('', 0))
+        self.socket = connection_socket
         # create internal and external?
         self.ip = self.get_own_ip(zk_address, zk_port)
         self.port = connection_socket.getsockname()[1]
         self.zookeeper = KazooClient(hosts=zk_address + ":" + zk_port, read_only=True)
         self.zookeeper.start()
-        self.connection_socket = connection_socket
         self.master = self.get_master()
+
 
     def get_own_ip(self, zk_address, zk_port):
         s = socket(AF_INET, SOCK_STREAM)
@@ -35,9 +38,10 @@ class ServerFactory:
         return ip
 
     def get_server(self):
-        if (self.master[0] == self.ip):
-            return Master(self.zookeeper, self.ip)
+        if (self.master[0] == self.ip and self.master[1]==self.port):
+            return Master(self.zookeeper, self.ip, self.socket)
         else:
+            self.socket.close()
             return Slave(self.zookeeper, self.master, self.ip)
 
     def get_master(self):
@@ -45,11 +49,12 @@ class ServerFactory:
         :return: [master's ip , master's port]
         """
         try:
-            self.zookeeper.create("/master", value=self.ip + ":" + self.port)
+            val=self.ip + ":" + str(self.port)
+            self.zookeeper.create("/master", value=val.encode(),ephemeral=True)
             return [self.ip, self.port]
         except NodeExistsError:
             data, stat = self.zookeeper.get("/master")
-            return data.decode("utf-8").split(":")
+            return data.decode().split(":")
 
     def perform_master_job(self):
         pass
@@ -58,5 +63,5 @@ class ServerFactory:
         pass
 
 
-server = ServerFactory("127.0.0.1", "2181").get_server()
-server.start()
+server = ServerFactory("192.168.0.55", "2181").get_server()
+# server.start()

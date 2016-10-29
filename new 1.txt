@@ -102,8 +102,126 @@ Protocol on slave down
 	
 	
 	
+2 slaves..3 comes up..
+	1,2 are busy with requests..3 should get its share of data..so 1,2's operations should be stopped..
+	what to do nw?
 	
 	
 	
-	
-	
+	lock
+	increment count
+	unlock
+
+
+	lock
+	decrement
+	unlock
+sem = 1
+self.sem.acquire()->success
+safe boot has started....
+#dont release
+    sem = 0
+    1 get and 1 put
+    count = 2
+    sem
+    sem = 1->acquire..0
+    consistent..
+
+#acquire
+
+
+Mast
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Master sends to slave [1,5] , [7,10] ..
+But the slave stores [1,2,3,4,5,7,8,9,10]
+when the master says transfer: [5,10]
+[1]
+Method 1:
+    keyrange- fixed
+    5 keys is 1 packet
+    0-[1,5] 6,20
+    5-[6,10]
+    ...
+    now: we'll loop through these packets and distribute..
+    [0,10]->[1,50]
+Method 2:
+    [1,100]
+    [1,50] [1,50]->send
+
+slaves -> 4-> 3
+requestStartSafeBoot
+1->[],2->[],3->[]
+A: 0, 3
+B: 1, 0
+C: 2, 1
+D: 3, 2
+---------------
+onslavedown:event->A
+1->B,2->C,3->D
+B.setkeysresp([0,1])
+D.setBuddy(B)
+safeBootStop->full sync...
+B: [1, 0],(3)
+C: [2], (1,0)
+D: [3], (2)
+------------------------
+onslaveup:event->A
+find a B such that it is highly overloaded.
+B.transfer(B.keys[>50%],A)
+A.setkeysresp(B.keys[>50%])
+B.setkeysresp(B.keys[<50%])
+D.setBuddy(A)
+A.setBuddy(B)
+-------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

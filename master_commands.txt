@@ -1,0 +1,14 @@
+0
+{'operation':'requestSafeBootStart'}
+1
+{'operation':'requestSafeBootStart'}
+0
+{'operation':'setKeysResponsible','data':[0,1]}
+1
+{'operation':'setKeysResponsible','data':[2,3]}
+0
+{'operation':'setBuddy' , 'data':'192.168.0.57'}
+1
+{'operation':'setBuddy' , 'data':'192.168.0.55'}
+0
+{'operation':'safeBootStop'}
