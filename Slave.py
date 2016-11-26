@@ -50,7 +50,7 @@ class Slave:
         elif args['operation'] == 'setBuddy':
             self.setBuddy(args)
         elif args['operation'] == 'safeBootStop':
-            self.stopSafeBoot()
+            self.stopSafeBoot(args)
         self.masterSocket.send("OK".encode())
 
     def transfer(self, args):
@@ -58,7 +58,7 @@ class Slave:
             {'data':{'target_ip':value, 'key_ranges':list_of_indices}}
         '''
         target = args['data']['target_ip']
-        conn_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn_sock = socket(AF_INET,SOCK_STREAM)
         conn_sock.connect((target, 1234))
         key_ranges = args['data']['key_ranges']
         data = {i: self.mainDict[i] for i in key_ranges}
@@ -73,15 +73,13 @@ class Slave:
             del self.mainDict[key]
         newResp = set(self.respIndices) - set(self.mainDict.keys())  #
         for key in newResp:
-            #Todo if this key is in backupdict, copy from backup else {}
-            self.mainDict[key] = {}
+            self.mainDict[key] = self.backupDict.get(key,{})
 
     def reportToMaster(self):
         '''
             format : {'data':value, 'operation':'setBuddy'}
         '''
-        self.masterSocket.send(self.name.encode())
-        self.config = eval(self.masterSocket.recv(2048).decode())  # config = {0:(0,5),1:(5,10)...}
+        self.connect_to_master()
         while True:
             # Listens to commands by master
             response = eval(self.masterSocket.recv(2048).decode())
@@ -91,13 +89,20 @@ class Slave:
             # commands: requestSafeBootStart, transfer(kr,ip), setKeysResponsible(kr), setBuddy(ip), safeBootStop
         pass
 
+    def connect_to_master(self):
+        self.masterSocket.send(self.name.encode())
+        try:
+            self.config = eval(self.masterSocket.recv(2048).decode())  # config = {0:(0,5),1:(5,10)...}
+        except NameError:
+            # Not yet ready to connect master
+            #Try after 5 seconds
+            Timer(5,self.connect_to_master).start()
+
     def setBuddy(self, args):
         '''
             format : {'data':value}
         '''
         self.buddy=args['data']
-        #self.sync(force=True,full=True)
-        pass
 
     def sync(self,update=(None,None,None),force=False,full=False):
         '''{}
@@ -145,8 +150,10 @@ class Slave:
         assert conn_sock.recv(2048).decode() == "OK"
         conn_sock.close()
 
-    def stopSafeBoot(self):
-        self.sync(force=True,full=True)
+    def stopSafeBoot(self,args):
+        sync=args["sync"]
+        if(sync):
+            self.sync(force=True,full=True)
         self.safeMode = False
         self.masterSocket.send('OK'.encode())
 
@@ -175,7 +182,7 @@ class Slave:
         """
         {'status': 0 1 2 3,"message":"", data:""}
         status codes : 0 - success, 1 - safeboot error, 2 - key not found, 3 - not responsible for key
-    """
+        """
         if self.safeMode:
             # throw error
             conn_soc.send(json.dumps({'status': 1, 'message': 'safeboot error', 'data': None}).encode())
@@ -232,7 +239,11 @@ class Slave:
         if(purge):
             self.backupDict=update
         else:
-            self.backupDict.update(update)
+            for key in update:
+                if key in self.backupDict:
+                    self.backupDict[key].update(update[key])
+                else:
+                    self.backupDict[key] = update[key]
         conn_soc.send('OK'.encode())
 
     def getS(self, update, conn_soc):  # update:{0:{},5:{},7:{}}

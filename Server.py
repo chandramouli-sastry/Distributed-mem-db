@@ -4,10 +4,10 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NodeExistsError
 from Master import Master
 from Slave import Slave
-import six
-"""
-    Class
-"""
+
+ZK_PORT = "2181"
+
+ZK_ADDRESS = "192.168.43.169"
 
 
 class ServerFactory:
@@ -18,11 +18,9 @@ class ServerFactory:
         :param zk_port:     Port of the zookeeper server
         :return:
         """
-
         connection_socket = socket(AF_INET, SOCK_STREAM)
         connection_socket.bind(('', 0))
         self.socket = connection_socket
-        # create internal and external?
         self.ip = self.get_own_ip(zk_address, zk_port)
         self.port = connection_socket.getsockname()[1]
         self.zookeeper = KazooClient(hosts=zk_address + ":" + zk_port, read_only=True)
@@ -48,7 +46,9 @@ class ServerFactory:
         """
         :return: [master's ip , master's port]
         """
+
         try:
+            #Try to become master. If you cannot, then become slave
             val=self.ip + ":" + str(self.port)
             self.zookeeper.create("/master", value=val.encode(),ephemeral=True)
             return [self.ip, self.port]
@@ -56,12 +56,6 @@ class ServerFactory:
             data, stat = self.zookeeper.get("/master")
             return data.decode().split(":")
 
-    def perform_master_job(self):
-        pass
-
-    def perform_slave_job(self):
-        pass
 
 
-server = ServerFactory("192.168.0.55", "2181").get_server()
-# server.start()
+server = ServerFactory(ZK_ADDRESS, ZK_PORT).get_server()

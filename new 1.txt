@@ -211,6 +211,51 @@ A.setBuddy(B)
 
 
 
+Slaves create a Znode and give the name to the master
+Znode : {ip,sock,buddyZnode}
+key_range : ip
+
+
+
+d=> znode : ip,socket,{}
+kr_ip => kr : ip
+buddies => [znode...]
+
+
+
+
+
+1) Allocating key range should be smooth
+    a) Beginning:
+        n slaves and m key ranges
+        master knows slave ip and slave znode and socket
+        on slave up:
+            d=> znode : ip,socket,{}
+        Now we have Safeboot
+            d=> n keys and we have m key ranges.
+            curr=0
+            znodes = sorted(d.keys())
+            for k in key_range:
+                allocate k to   ip(znodes[curr])
+                    kr_to_ip => kr:ip
+                    znode[curr].kr.add(kr)
+                curr=curr+1 % n
+            buddies=znodes          => znodeK+1%N is buddy of znodeK
+        StopSafeboot
+    b) Slave down:
+        We will know the znode value (Say z2)
+        LINEAR SEARCH :(  to find Z2.
+        Let Xi be index of Z2. Buddy is Xi+1 % len(buddies)
+        Now, setkeysresp for buddy  as d[buddy][kr] union d[buddes[Xi]][kr]
+        setBuddy of  Xi-1 to Xi+1 provided they are not the same
+        We need to make everything go to safemode as all sync happens after TODO: Optimise this if time permits
+    c) Slave up :
+        Find most overloaded Let that be Zx and index be Xi
+        Add New server to the left of Xi
+
+
+2) Client serving should be O(1)
+
 
 
 
